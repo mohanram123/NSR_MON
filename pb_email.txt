@@ -1,0 +1,123 @@
+http://pbgeeks.com/send-emails-via-outlook-powerbuilder/
+
+Create Window function – wf_StartMailSession with the below code in it
+//start email session
+
+ole_email_session.object.signon
+
+//assign session id to message object
+ole_email_msg.object.sessionid = ole_email_session.object.sessionid
+
+Create Window function – wf_ComposeMailMsg
+Argument1 : string: as_note
+Argument2: string: as_subject
+Add below code in this function
+//start new message buffer
+ole_email_msg.object.compose
+ole_email_msg.object.MsgNoteText = as_note
+ole_email_msg.object.MsgSubject = as_subject
+
+Create Window function – wf_AddRecipients
+and add the code below in it
+
+Long rr, ll_recip_cnt
+
+//open address book and populate to
+ole_email_msg.object.AddressModifiable( true )
+ole_email_msg.object.Show( false )
+
+ll_recip_cnt = ole_email_msg.object.RecipCount
+
+for rr = 1 to ll_recip_cnt
+ole_email_msg.object.RecipIndex = rr -1
+is_recip[ rr ] = ole_email_msg.object.RecipDisplayName
+next
+
+Create Window function – wf_AddAttachment
+Arg1: string: as_attachpathname
+Arg2: long: al_attachpos
+Arg3: string: as_attachname
+Add below code in this function
+//add attachment
+ole_email_msg.object.attachmentindex = ole_email_msg.object.attachmentcount
+ole_email_msg.object.attachmentpathname = as_attachpathname
+ole_email_msg.object.attachmentposition = al_attachpos
+ole_email_msg.object.attachmentname = as_attachname
+
+Create Window function – wf_SendMail and add below code in it
+ole_email_msg.object.send( true )
+
+
+ 
+Create Window function – wf_signoffmailsession and add below code in it
+ole_email_session.object.signoff
+
+The above functions will help you control the email sending functionality from an external object by calling each one in an order. If you want to include all of these functions in one single call then you can follow the below directions:
+
+Create Window Function – wf_email
+Arguments:
+integer : ai_num_files
+string : as_mapidll_path
+string : as_attach_pathname[]
+string : as_attach_filename[]
+string : as_subject
+string : as_note
+Add below code in the function
+boolean lb_valid_entensions = TRUE // A flag that indicates whether the file extensions are valid.
+long ll_index // An index and loop counter.
+// Loop through all files to verify they have a valid extension.
+FOR ll_index = 1 TO ai_num_files
+// If a file does not have a valid extension, then set the flag
+// and quit looking.
+CHOOSE CASE Upper(RightA(as_attach_filename[ll_index], 4))
+CASE “.PDF”
+CASE “.TIF”
+CASE “.JPG”
+CASE ELSE
+lb_valid_entensions = FALSE
+Exit
+END CHOOSE
+NEXT
+
+// If all supplied files have a valid extension, then determine if
+// the MAPI file exists.
+IF lb_valid_entensions THEN
+// If the MAPI file exists, then send the email.
+IF FileExists(as_mapidll_path) OR FileExists(“c:\support\msmapi32.ocx”) THEN
+// Start email session
+ole_email_session.object.signon
+
+// Assign session id to message object
+ole_email_msg.object.sessionid = ole_email_session.object.sessionid
+
+// Start new message buffer
+ole_email_msg.object.compose
+ole_email_msg.object.MsgNoteText = as_note
+ole_email_msg.object.MsgSubject = as_subject
+
+// Add attachment(s)
+FOR ll_index = 1 TO ai_num_files
+ole_email_msg.object.attachmentindex = ole_email_msg.object.attachmentcount
+
+ole_email_msg.object.attachmentpathname = as_attach_pathname[ll_index]
+ole_email_msg.object.attachmentposition = (ll_index – 1)
+ole_email_msg.object.attachmentname = as_attach_filename[ll_index]
+NEXT
+
+ole_email_msg.object.send(TRUE)
+
+ole_email_session.object.signoff
+// Otherwise, send an error message.
+ELSE
+MessageBox(“.ocx Error”, “Please have systems install and register the msmapi32.ocx on your pc.”)
+END IF
+ELSE
+MessageBox(“Alert”, “Please double click an image to email.”)
+END IF
+
+ 
+
+You can have several versions of overriden functions for wf_email as you feel necessary. The call to these functions are pretty straightforward and depends on your implementation. If you need any help with that do reach out to me and I will be glad to help you.
+
+Over To You
+I hope I have answered some of your questions on how to send emails via outlook from powerbuilder applications. This is one way to send out emails if you are using outlook as your primary email client. You can also make use of SQL Server Email functionality to send out emails from your powerbuilder application by calling the relevant stored procedures. If you would like to add more to this article, please do feel free to leave a comment below.
